@@ -21,7 +21,7 @@ def welcome(message=""):
     redirect('/')
     return render_template('index.html',message=message)
 
-@app.route('/predict',methods=['POST'])
+@app.route('/predict',methods=['POST', 'GET'])
 def predict():
     if request.method=='POST':
         print("\n\n\n\n\n\n\n")
@@ -30,25 +30,36 @@ def predict():
        
         result=  preprocessAndPredict(request.form.get('sentence'))
         print("\n\n\n\n\n\n\n")
-        if(result==1):
-            return render_template('predict.html',text="The SMS is NOT spam")
+        if(result==0):
+            return render_template('index.html',text="The SMS is NOT spam")
         else:
-            return render_template('predict.html',text="The SMS is SPAM")
+            return render_template('index.html',text="The SMS is SPAM")
 
 def preprocessAndPredict(sentence):
+    # Convert to lowercase
     sentence = sentence.lower()
-    sentence =nltk.word_tokenize(sentence)
-
-    y =[]
-    for i in sentence:
-        if i.isalnum():
-            if i not in stopwords.words('english') and i not in string.punctuation:
-                y.append(ps.stem(i))
-    sentence = " ".join(y)
     
-    tfidf = TfidfVectorizer(max_features=3000)
-    x = tfidf.fit_transform(sentence).toarray()
-    return model.predict(x)[0]
+    # Tokenize the sentence
+    words = nltk.word_tokenize(sentence)
+
+    # Remove stopwords and punctuation, and apply stemming
+    filtered_words = []
+    for word in words:
+        if word.isalnum():  # Filter out non-alphanumeric characters
+            if word not in stopwords.words('english'):  # Remove stopwords
+                filtered_words.append(ps.stem(word))  # Apply stemming
+
+    # Join the processed words back into a single string
+    processed_sentence = " ".join(filtered_words)
+
+    # Transform the processed sentence using the pre-fitted TF-IDF vectorizer
+    vectorized_input = tfidf_vectorizer.transform([processed_sentence])
+
+    # Predict using the pre-trained model
+    return model.predict(vectorized_input)[0]
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
+  
